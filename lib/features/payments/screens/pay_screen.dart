@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/bottom_nav.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/avatars.dart';
+import '../../../core/services/notification_service.dart';
+import '../services/session_service.dart';
 
 /// Pay screen - main entry for making payments
-class PayScreen extends StatelessWidget {
+class PayScreen extends ConsumerStatefulWidget {
   const PayScreen({super.key});
+
+  @override
+  ConsumerState<PayScreen> createState() => _PayScreenState();
+}
+
+class _PayScreenState extends ConsumerState<PayScreen> {
+  bool _isStartingSession = false;
 
   @override
   Widget build(BuildContext context) {
@@ -86,15 +96,37 @@ class PayScreen extends StatelessWidget {
             ),
             const SizedBox(height: 32),
             PrimaryButton(
-              label: 'Start Payment Session',
-              onPressed: () {
-                // Handle payment session
-              },
+              label: _isStartingSession ? 'Starting session...' : 'Start Payment Session',
+              onPressed: _isStartingSession ? null : _startPaymentSession,
             ),
           ],
         ),
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 0),
     );
+  }
+
+  Future<void> _startPaymentSession() async {
+    setState(() => _isStartingSession = true);
+
+    try {
+      // Use default bank account (in real app, let user choose or use default)
+      const linkedBankAccountId = 'default-bank-account';
+
+      await ref.read(activeSessionProvider.notifier).startSession(linkedBankAccountId);
+
+      final session = ref.read(activeSessionProvider);
+      if (session != null && mounted) {
+        context.push('/session-active/${session.id}');
+      }
+    } catch (e) {
+      if (mounted) {
+        NotificationService.showError('Could not start session. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isStartingSession = false);
+      }
+    }
   }
 }

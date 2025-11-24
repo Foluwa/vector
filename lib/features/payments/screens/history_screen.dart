@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/bottom_nav.dart';
 import '../../../core/widgets/input_fields.dart';
+import '../models/payment_session_model.dart';
+import '../services/session_service.dart';
 
 /// History screen - view past transactions
-class HistoryScreen extends StatefulWidget {
+class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
   @override
-  State<HistoryScreen> createState() => _HistoryScreenState();
+  ConsumerState<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedTab = 0;
 
   // All transactions data
@@ -33,16 +36,53 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _TransactionData(icon: Icons.local_taxi, name: 'Taxi Driver', time: 'Yesterday, 9:20 AM', amount: '-£18.00', isPositive: false, id: '3'),
   ];
 
+  // Dynamically add active/ended sessions from SessionService
+  List<_TransactionData> get _allTransactionsWithSessions {
+    final sessionService = ref.read(sessionServiceProvider);
+    final sessions = sessionService.getAllSessions();
+
+    final sessionTransactions = sessions.map((session) {
+      return _TransactionData(
+        icon: Icons.qr_code_2,
+        name: 'Payment Session',
+        time: session.status == SessionStatus.active ? 'Active now' : 'Ended ${_formatSessionTime(session.endedAt ?? session.startedAt)}',
+        amount: session.formattedTotalAmount,
+        isPositive: true,
+        subtitle: '${session.paymentsCount} payment${session.paymentsCount == 1 ? '' : 's'}',
+        isSession: true,
+        id: session.id,
+      );
+    }).toList();
+
+    return [...sessionTransactions, ..._allTransactions];
+  }
+
+  String _formatSessionTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else {
+      return '${difference.inDays}d ago';
+    }
+  }
+
   List<_TransactionData> get _filteredTransactions {
+    final allTxns = _allTransactionsWithSessions;
     switch (_selectedTab) {
       case 1: // Sent
-        return _allTransactions.where((t) => !t.isPositive && !t.isSession).toList();
+        return allTxns.where((t) => !t.isPositive && !t.isSession).toList();
       case 2: // Received
-        return _allTransactions.where((t) => t.isPositive && !t.isSession).toList();
+        return allTxns.where((t) => t.isPositive && !t.isSession).toList();
       case 3: // Sessions
-        return _allTransactions.where((t) => t.isSession).toList();
+        return allTxns.where((t) => t.isSession).toList();
       default: // All
-        return _allTransactions;
+        return allTxns;
     }
   }
 
@@ -168,7 +208,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return InkWell(
       onTap: () {
         if (data.isSession) {
-          context.push('/history/session/${data.id}');
+          // Navigate to session settlement screen
+          context.push('/session-settlement/${data.id}');
         } else {
           context.push('/history/transaction/${data.id}');
         }

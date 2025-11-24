@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/input_fields.dart';
+import '../../../core/services/notification_service.dart';
 import '../services/auth_service.dart';
 
 /// Sign up screen
@@ -40,7 +41,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sign up failed: $e')));
+        NotificationService.showAuthError(message: 'Sign up failed. Please try again.');
       }
     } finally {
       if (mounted) {

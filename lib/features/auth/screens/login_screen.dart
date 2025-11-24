@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/input_fields.dart';
+import '../../../core/services/notification_service.dart';
 import '../services/auth_service.dart';
 
 /// Login screen
@@ -40,7 +41,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+        NotificationService.showAuthError(message: 'Login failed. Please check your credentials.');
       }
     } finally {
       if (mounted) {

@@ -15,6 +15,8 @@ import '../../features/payments/screens/payment_review_screen.dart';
 import '../../features/payments/screens/request_details_screen.dart';
 import '../../features/payments/screens/transaction_detail_screen.dart';
 import '../../features/payments/screens/session_detail_screen.dart';
+import '../../features/payments/screens/session_active_screen.dart';
+import '../../features/payments/screens/session_settlement_screen.dart';
 import '../../features/payments/screens/emergency_topup_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
@@ -57,6 +59,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'scan', builder: (context, state) => const ScanQrScreen()),
           GoRoute(path: 'review', builder: (context, state) => const PaymentReviewScreen()),
         ],
+      ),
+      GoRoute(
+        path: '/session-active/:id',
+        builder: (context, state) => SessionActiveScreen(sessionId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/session-settlement/:id',
+        builder: (context, state) => SessionSettlementScreen(sessionId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/receive',
