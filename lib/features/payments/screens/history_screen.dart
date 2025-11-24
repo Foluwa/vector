@@ -16,8 +16,42 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   int _selectedTab = 0;
 
+  // All transactions data
+  final List<_TransactionData> _allTransactions = [
+    _TransactionData(icon: Icons.qr_code, name: 'Sarah Johnson', time: '2 hours ago', amount: '+£45.00', isPositive: true, id: '1'),
+    _TransactionData(icon: Icons.store, name: 'Coffee Shop', time: '5 hours ago', amount: '-£12.50', isPositive: false, id: '2'),
+    _TransactionData(
+      icon: Icons.layers,
+      name: 'Market Session',
+      time: 'Yesterday, 3:45 PM',
+      amount: '+£234.75',
+      isPositive: true,
+      subtitle: '12 payments',
+      isSession: true,
+      id: 'session_1',
+    ),
+    _TransactionData(icon: Icons.local_taxi, name: 'Taxi Driver', time: 'Yesterday, 9:20 AM', amount: '-£18.00', isPositive: false, id: '3'),
+  ];
+
+  List<_TransactionData> get _filteredTransactions {
+    switch (_selectedTab) {
+      case 1: // Sent
+        return _allTransactions.where((t) => !t.isPositive && !t.isSession).toList();
+      case 2: // Received
+        return _allTransactions.where((t) => t.isPositive && !t.isSession).toList();
+      case 3: // Sessions
+        return _allTransactions.where((t) => t.isSession).toList();
+      default: // All
+        return _allTransactions;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final filteredTransactions = _filteredTransactions;
+    final todayTransactions = filteredTransactions.where((t) => t.time.contains('hours ago')).toList();
+    final yesterdayTransactions = filteredTransactions.where((t) => t.time.contains('Yesterday')).toList();
+
     return Scaffold(
       appBar: AppBar(title: Text('History', style: AppTextStyles.h1)),
       body: SingleChildScrollView(
@@ -77,23 +111,21 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
             const SizedBox(height: 24),
             // Transaction list
-            _buildTransactionSection(context, 'TODAY', [
-              _TransactionData(icon: Icons.qr_code, name: 'Sarah Johnson', time: '2 hours ago', amount: '+£45.00', isPositive: true, id: '1'),
-              _TransactionData(icon: Icons.store, name: 'Coffee Shop', time: '5 hours ago', amount: '-£12.50', isPositive: false, id: '2'),
-            ]),
-            _buildTransactionSection(context, 'YESTERDAY', [
-              _TransactionData(
-                icon: Icons.layers,
-                name: 'Market Session',
-                time: 'Yesterday, 3:45 PM',
-                amount: '+£234.75',
-                isPositive: true,
-                subtitle: '12 payments',
-                isSession: true,
-                id: 'session_1',
-              ),
-              _TransactionData(icon: Icons.local_taxi, name: 'Taxi Driver', time: 'Yesterday, 9:20 AM', amount: '-£18.00', isPositive: false, id: '3'),
-            ]),
+            if (filteredTransactions.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(48),
+                child: Column(
+                  children: [
+                    Icon(Icons.inbox_outlined, size: 64, color: AppColors.textTertiary),
+                    const SizedBox(height: 16),
+                    Text('No transactions found', style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
+                  ],
+                ),
+              )
+            else ...[
+              if (todayTransactions.isNotEmpty) _buildTransactionSection(context, 'TODAY', todayTransactions),
+              if (yesterdayTransactions.isNotEmpty) _buildTransactionSection(context, 'YESTERDAY', yesterdayTransactions),
+            ],
           ],
         ),
       ),

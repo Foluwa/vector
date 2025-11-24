@@ -14,6 +14,10 @@ class ProPricingScreen extends StatefulWidget {
 class _ProPricingScreenState extends State<ProPricingScreen> {
   bool _isAnnual = true;
 
+  String get _buttonLabel => _isAnnual ? 'Go Pro — \u00A390/year' : 'Go Pro — \u00A39/month';
+
+  String get _savingsText => _isAnnual ? 'Save \u00A318 compared to monthly' : 'Flexible monthly billing';
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,10 +53,38 @@ class _ProPricingScreenState extends State<ProPricingScreen> {
                 Expanded(child: _pricingCard(true)),
               ],
             ),
+            const SizedBox(height: 16),
+            // Savings/billing info
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: _isAnnual ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _isAnnual ? AppColors.primary.withOpacity(0.3) : AppColors.border),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    _isAnnual ? Icons.savings_outlined : Icons.calendar_today_outlined,
+                    size: 20,
+                    color: _isAnnual ? AppColors.primary : AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(_savingsText, style: AppTextStyles.body2Medium.copyWith(color: _isAnnual ? AppColors.primary : AppColors.textSecondary)),
+                ],
+              ),
+            ),
             const SizedBox(height: 32),
             ..._features.map((feature) => _featureItem(feature)),
             const SizedBox(height: 32),
-            PrimaryButton(label: _isAnnual ? 'Go Pro — \u00A390/year' : 'Go Pro — \u00A39/month', onPressed: () {}),
+            PrimaryButton(label: _buttonLabel, onPressed: () {}),
+            const SizedBox(height: 16),
+            Text(
+              _isAnnual ? 'Billed annually at \u00A390. Cancel anytime.' : 'Billed monthly at \u00A39. Cancel anytime.',
+              style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
           ],
         ),
       ),
