@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/input_fields.dart';
 import '../../../core/services/notification_service.dart';
@@ -56,14 +57,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       appBar: AppBar(),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+          padding: AppConstants.paddingAll24,
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text('Create an Account', style: AppTextStyles.display2, textAlign: TextAlign.center),
-                const SizedBox(height: 48),
+                const SizedBox(height: AppConstants.spacing48),
                 AppTextField(
                   label: 'Email',
                   hint: 'Email',
@@ -79,7 +80,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppConstants.spacing24),
                 AppTextField(
                   label: 'Password',
                   hint: 'Password',
@@ -95,9 +96,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: AppConstants.spacing32),
                 PrimaryButton(label: 'Sign Up', onPressed: _handleSignUp, isLoading: _isLoading),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppConstants.spacing24),
                 Center(
                   child: AppTextButton(label: 'Already Have an Account?', onPressed: () => context.go('/login')),
                 ),

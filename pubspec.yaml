@@ -37,20 +37,20 @@ dependencies:
   
   # State Management
   flutter_riverpod: ^2.6.1
-  riverpod_annotation: ^2.6.1
   
   # Routing
   go_router: ^14.6.2
-  
-  # Code Generation
-  freezed_annotation: ^2.4.4
-  json_annotation: ^4.9.0
   
   # UI & Utilities
   google_fonts: ^6.2.1
   shimmer: ^3.0.0
   intl: ^0.19.0
   qr_flutter: ^4.1.0
+  share_plus: ^10.1.2
+  path_provider: ^2.1.5
+  pdf: ^3.11.1
+  csv: ^6.0.0
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
@@ -62,12 +62,6 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
-  
-  # Code Generation
-  build_runner: ^2.4.13
-  riverpod_generator: ^2.6.2
-  freezed: ^2.5.7
-  json_serializable: ^6.8.0
   
   # Testing
   mockito: ^5.4.4

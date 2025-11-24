@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/bottom_nav.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/widgets/avatars.dart';
@@ -43,30 +44,30 @@ class _PayScreenState extends ConsumerState<PayScreen> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // Scan to Pay card
             InkWell(
               onTap: () => context.push('/pay/scan'),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppConstants.borderRadiusLarge,
               child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(16)),
+                padding: AppConstants.paddingAll24,
+                decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppConstants.borderRadiusLarge),
                 child: Row(
                   children: [
-                    const Icon(Icons.qr_code_scanner, size: 32, color: AppColors.textPrimary),
-                    const SizedBox(width: 16),
+                    const Icon(Icons.qr_code_scanner, size: AppConstants.iconXLarge, color: AppColors.textPrimary),
+                    const SizedBox(width: AppConstants.spacing16),
                     Text('Scan to Pay', style: AppTextStyles.h3),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppConstants.spacing24),
             // Manual entry
             Text('Or enter payment link', style: AppTextStyles.body2Medium),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppConstants.spacing12),
             TextField(
               decoration: InputDecoration(
                 hintText: 'vector.app/pay/...',
@@ -78,10 +79,10 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                 }
               },
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             // Recent recipients
             Text('Recent', style: AppTextStyles.h3),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             SizedBox(
               height: 100,
               child: ListView(
@@ -94,7 +95,7 @@ class _PayScreenState extends ConsumerState<PayScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             PrimaryButton(
               label: _isStartingSession ? 'Starting session...' : 'Start Payment Session',
               onPressed: _isStartingSession ? null : _startPaymentSession,

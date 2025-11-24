@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../constants/app_constants.dart';
 
 /// Standard input field component
 class AppTextField extends StatefulWidget {
@@ -76,31 +78,77 @@ class _AppTextFieldState extends State<AppTextField> {
   }
 }
 
-/// Search field component
-class SearchField extends StatelessWidget {
-  const SearchField({required this.hint, this.controller, this.onChanged, super.key});
+/// Search field component with debouncing
+class SearchField extends StatefulWidget {
+  const SearchField({required this.hint, this.controller, this.onChanged, this.debounceMs, super.key});
 
   final String hint;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final int? debounceMs;
+
+  @override
+  State<SearchField> createState() => _SearchFieldState();
+}
+
+class _SearchFieldState extends State<SearchField> {
+  Timer? _debounceTimer;
+  late final TextEditingController _internalController;
+
+  @override
+  void initState() {
+    super.initState();
+    _internalController = widget.controller ?? TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _debounceTimer?.cancel();
+    if (widget.controller == null) {
+      _internalController.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onSearchChanged(String value) {
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+
+    // Start new timer
+    final debounceDelay = widget.debounceMs ?? AppConstants.searchDebounceMs;
+    _debounceTimer = Timer(Duration(milliseconds: debounceDelay), () {
+      if (widget.onChanged != null) {
+        widget.onChanged!(value);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      controller: controller,
-      onChanged: onChanged,
+      controller: _internalController,
+      onChanged: _onSearchChanged,
       style: AppTextStyles.body1,
       decoration: InputDecoration(
-        hintText: hint,
+        hintText: widget.hint,
         hintStyle: AppTextStyles.body1.copyWith(color: AppColors.textTertiary),
         prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
+        suffixIcon: _internalController.text.isNotEmpty
+            ? IconButton(
+                icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                onPressed: () {
+                  _internalController.clear();
+                  _onSearchChanged('');
+                },
+              )
+            : null,
         filled: true,
         fillColor: AppColors.surface,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        border: OutlineInputBorder(borderRadius: AppConstants.borderRadiusMedium, borderSide: BorderSide.none),
+        enabledBorder: OutlineInputBorder(borderRadius: AppConstants.borderRadiusMedium, borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: AppConstants.borderRadiusMedium,
+          borderSide: const BorderSide(color: AppColors.primary, width: AppConstants.borderThick),
         ),
       ),
     );

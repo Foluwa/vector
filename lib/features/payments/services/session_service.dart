@@ -30,7 +30,7 @@ class SessionService {
 
     final now = DateTime.now();
     final sessionId = _generateSessionId();
-    final publicUrl = 'https://vector.app/s/$sessionId';
+    final publicUrl = 'https://paywithvector.app/s/$sessionId';
     final qrPayload = publicUrl; // In real app, might be different encoding
 
     final session = PaymentSession(id: sessionId, publicUrl: publicUrl, qrPayload: qrPayload, startedAt: now, linkedBankAccountId: linkedBankAccountId);
@@ -163,8 +163,8 @@ class ActiveSessionNotifier extends StateNotifier<PaymentSession?> {
   Future<void> addNote(String note) async {
     if (state == null) return;
     await _sessionService.addNoteToSession(state!.id, note);
-    // Trigger rebuild
-    state = state;
+    // Trigger rebuild by creating new instance
+    state = state!.copyWith(note: note);
   }
 
   /// End current session
@@ -181,13 +181,22 @@ class ActiveSessionNotifier extends StateNotifier<PaymentSession?> {
     state = null;
   }
 
+  /// Ensure timer is running (useful when navigating back to session screen)
+  void ensureTimerRunning() {
+    if (state != null && state!.status == SessionStatus.active) {
+      if (_updateTimer == null || !_updateTimer!.isActive) {
+        _startUpdateTimer();
+      }
+    }
+  }
+
   /// Start periodic timer to update UI
   void _startUpdateTimer() {
     _updateTimer?.cancel();
     _updateTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state != null && state!.status == SessionStatus.active) {
-        // Trigger rebuild by reassigning state
-        state = state;
+        // Trigger rebuild by creating a new instance (Riverpod needs object identity change)
+        state = state!.copyWith();
       } else {
         timer.cancel();
       }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/buttons.dart';
 
@@ -10,7 +11,7 @@ class EditProfileScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Profile')),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           children: [
             Text('Edit your profile information', style: AppTextStyles.body1),

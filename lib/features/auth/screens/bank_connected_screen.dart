@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/buttons.dart';
 
 /// Bank connected success screen
@@ -13,7 +14,7 @@ class BankConnectedScreen extends StatelessWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(24),
+          padding: AppConstants.paddingAll24,
           child: Column(
             children: [
               const Spacer(),
@@ -21,14 +22,14 @@ class BankConnectedScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusXLarge),
                   border: Border.all(color: AppColors.primary, width: 3),
                 ),
                 child: const Icon(Icons.check, size: 64, color: AppColors.primary),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: AppConstants.spacing32),
               Text('Bank connected', style: AppTextStyles.display2, textAlign: TextAlign.center),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppConstants.spacing16),
               Text(
                 'You\'re ready to receive payments instantly',
                 style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),

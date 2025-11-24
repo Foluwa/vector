@@ -3,12 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/bottom_nav.dart';
 import '../../../core/widgets/input_fields.dart';
 import '../models/payment_session_model.dart';
 import '../services/session_service.dart';
 
-/// History screen - view past transactions
+/// History screen - view past transactions with pagination
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
 
@@ -18,6 +19,51 @@ class HistoryScreen extends ConsumerStatefulWidget {
 
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   int _selectedTab = 0;
+  final ScrollController _scrollController = ScrollController();
+  int _currentPage = 0;
+  static const int _itemsPerPage = AppConstants.defaultPageSize;
+  bool _isLoadingMore = false;
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent * 0.8) {
+      _loadMore();
+    }
+  }
+
+  void _loadMore() {
+    if (!_isLoadingMore && _hasMoreData) {
+      setState(() {
+        _isLoadingMore = true;
+        _currentPage++;
+      });
+
+      // Simulate loading delay
+      Future.delayed(AppConstants.shortDelay, () {
+        if (mounted) {
+          setState(() => _isLoadingMore = false);
+        }
+      });
+    }
+  }
+
+  bool get _hasMoreData {
+    final filteredLength = _filteredTransactions.length;
+    final paginatedLength = (_currentPage + 1) * _itemsPerPage;
+    return paginatedLength < filteredLength;
+  }
 
   // All transactions data
   final List<_TransactionData> _allTransactions = [
@@ -73,7 +119,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   }
 
   List<_TransactionData> get _filteredTransactions {
-    final allTxns = _allTransactionsWithSessions;
+    var allTxns = _allTransactionsWithSessions;
+
+    // Apply search filter
+    if (_searchQuery.isNotEmpty) {
+      final query = _searchQuery.toLowerCase();
+      allTxns = allTxns.where((t) {
+        return t.name.toLowerCase().contains(query) || t.amount.toLowerCase().contains(query) || t.time.toLowerCase().contains(query);
+      }).toList();
+    }
+
+    // Apply tab filter
     switch (_selectedTab) {
       case 1: // Sent
         return allTxns.where((t) => !t.isPositive && !t.isSession).toList();
@@ -86,88 +142,100 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     }
   }
 
+  List<_TransactionData> get _paginatedTransactions {
+    final endIndex = (_currentPage + 1) * _itemsPerPage;
+    return _filteredTransactions.take(endIndex).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final filteredTransactions = _filteredTransactions;
-    final todayTransactions = filteredTransactions.where((t) => t.time.contains('hours ago')).toList();
-    final yesterdayTransactions = filteredTransactions.where((t) => t.time.contains('Yesterday')).toList();
+    final paginatedTransactions = _paginatedTransactions;
+    final todayTransactions = paginatedTransactions.where((t) => t.time.contains('hours ago')).toList();
+    final yesterdayTransactions = paginatedTransactions.where((t) => t.time.contains('Yesterday')).toList();
 
     return Scaffold(
       appBar: AppBar(title: Text('History', style: AppTextStyles.h1)),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Tabs
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(children: [_buildTab('All', 0), _buildTab('Sent', 1), _buildTab('Received', 2), _buildTab('Sessions', 3)]),
-            ),
-            const SizedBox(height: 16),
-            // Summary card
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 24),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('THIS MONTH', style: AppTextStyles.overline),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Received', style: AppTextStyles.body2),
-                            Text('+\u00A3497.25', style: AppTextStyles.h2.copyWith(color: AppColors.positiveAmount)),
-                          ],
-                        ),
-                      ),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Sent', style: AppTextStyles.body2),
-                            Text('-\u00A3119.75', style: AppTextStyles.h2),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Search
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: SearchField(
-                hint: 'Search by name, amount, or date',
-                onChanged: (value) {
-                  // Handle search
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            // Transaction list
-            if (filteredTransactions.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(48),
-                child: Column(
+      body: ListView(
+        controller: _scrollController,
+        children: [
+          // Tabs
+          Container(
+            padding: AppConstants.paddingH24,
+            child: Row(children: [_buildTab('All', 0), _buildTab('Sent', 1), _buildTab('Received', 2), _buildTab('Sessions', 3)]),
+          ),
+          const SizedBox(height: AppConstants.spacing16),
+          // Summary card
+          Container(
+            margin: AppConstants.paddingH24,
+            padding: AppConstants.paddingAll20,
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppConstants.borderRadiusLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('THIS MONTH', style: AppTextStyles.overline),
+                const SizedBox(height: AppConstants.spacing12),
+                Row(
                   children: [
-                    Icon(Icons.inbox_outlined, size: 64, color: AppColors.textTertiary),
-                    const SizedBox(height: 16),
-                    Text('No transactions found', style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Received', style: AppTextStyles.body2),
+                          Text('+\u00A3497.25', style: AppTextStyles.h2.copyWith(color: AppColors.positiveAmount)),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Sent', style: AppTextStyles.body2),
+                          Text('-\u00A3119.75', style: AppTextStyles.h2),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
-              )
-            else ...[
-              if (todayTransactions.isNotEmpty) _buildTransactionSection(context, 'TODAY', todayTransactions),
-              if (yesterdayTransactions.isNotEmpty) _buildTransactionSection(context, 'YESTERDAY', yesterdayTransactions),
-            ],
+              ],
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacing24),
+          // Search
+          Padding(
+            padding: AppConstants.paddingH24,
+            child: SearchField(
+              hint: 'Search by name, amount, or date',
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                  _currentPage = 0; // Reset pagination on search
+                });
+              },
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacing24),
+          // Transaction list
+          if (paginatedTransactions.isEmpty)
+            Padding(
+              padding: AppConstants.paddingAll48,
+              child: Column(
+                children: [
+                  const Icon(Icons.inbox_outlined, size: 64, color: AppColors.textTertiary),
+                  const SizedBox(height: AppConstants.spacing16),
+                  Text('No transactions found', style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
+                ],
+              ),
+            )
+          else ...[
+            if (todayTransactions.isNotEmpty) _buildTransactionSection(context, 'TODAY', todayTransactions),
+            if (yesterdayTransactions.isNotEmpty) _buildTransactionSection(context, 'YESTERDAY', yesterdayTransactions),
+            if (_isLoadingMore)
+              const Padding(
+                padding: AppConstants.paddingAll24,
+                child: Center(child: CircularProgressIndicator()),
+              ),
           ],
-        ),
+        ],
       ),
       bottomNavigationBar: const AppBottomNav(currentIndex: 2),
     );
@@ -176,13 +244,16 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   Widget _buildTab(String label, int index) {
     final isSelected = _selectedTab == index;
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(right: AppConstants.spacing8),
       child: InkWell(
-        onTap: () => setState(() => _selectedTab = index),
-        borderRadius: BorderRadius.circular(20),
+        onTap: () => setState(() {
+          _selectedTab = index;
+          _currentPage = 0; // Reset pagination on tab change
+        }),
+        borderRadius: AppConstants.borderRadiusXLarge,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(color: isSelected ? AppColors.primary : Colors.transparent, borderRadius: BorderRadius.circular(20)),
+          padding: AppConstants.paddingH16V8,
+          decoration: BoxDecoration(color: isSelected ? AppColors.primary : Colors.transparent, borderRadius: AppConstants.borderRadiusXLarge),
           child: Text(label, style: AppTextStyles.body2Medium.copyWith(color: isSelected ? AppColors.textPrimary : AppColors.textSecondary)),
         ),
       ),
@@ -191,14 +262,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
 
   Widget _buildTransactionSection(BuildContext context, String title, List<_TransactionData> transactions) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: AppConstants.paddingH24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: AppTextStyles.overline),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppConstants.spacing12),
           ...transactions.map((t) => _buildTransactionItem(context, t)),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppConstants.spacing24),
         ],
       ),
     );
@@ -208,22 +279,21 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     return InkWell(
       onTap: () {
         if (data.isSession) {
-          // Navigate to session settlement screen
           context.push('/session-settlement/${data.id}');
         } else {
           context.push('/history/transaction/${data.id}');
         }
       },
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.only(bottom: AppConstants.spacing16),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-              child: Icon(data.icon, size: 24, color: AppColors.textSecondary),
+              padding: AppConstants.paddingAll12,
+              decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppConstants.borderRadiusSmall),
+              child: Icon(data.icon, size: AppConstants.iconLarge, color: AppColors.textSecondary),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppConstants.spacing12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -238,7 +308,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(data.amount, style: AppTextStyles.body1Medium.copyWith(color: data.isPositive ? AppColors.positiveAmount : AppColors.textPrimary)),
-                const Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                const Icon(Icons.check_circle, size: AppConstants.iconSmall, color: AppColors.success),
               ],
             ),
           ],

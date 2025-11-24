@@ -20,7 +20,12 @@ import '../../features/payments/screens/session_settlement_screen.dart';
 import '../../features/payments/screens/emergency_topup_screen.dart';
 import '../../features/profile/screens/profile_screen.dart';
 import '../../features/profile/screens/edit_profile_screen.dart';
-import '../../features/profile/screens/notification_settings_screen.dart';
+import '../../features/profile/screens/help_faq_screen.dart';
+import '../../features/profile/screens/contact_support_screen.dart';
+import '../../features/profile/screens/report_problem_screen.dart';
+import '../../features/profile/screens/privacy_policy_screen.dart';
+import '../../features/profile/screens/terms_of_service_screen.dart';
+import '../../features/profile/screens/security_settings_screen.dart';
 import '../../features/bank/screens/bank_accounts_screen.dart';
 import '../../features/subscription/screens/pro_pricing_screen.dart';
 
@@ -102,6 +107,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: 'notifications', builder: (context, state) => const NotificationSettingsScreen()),
           GoRoute(path: 'bank-accounts', builder: (context, state) => const BankAccountsScreen()),
           GoRoute(path: 'pro', builder: (context, state) => const ProPricingScreen()),
+          // Support & Help routes
+          GoRoute(path: 'help', builder: (context, state) => const HelpFaqScreen()),
+          GoRoute(path: 'support', builder: (context, state) => const ContactSupportScreen()),
+          GoRoute(path: 'report', builder: (context, state) => const ReportProblemScreen()),
+          // Legal & Security routes
+          GoRoute(path: 'privacy', builder: (context, state) => const PrivacyPolicyScreen()),
+          GoRoute(path: 'terms', builder: (context, state) => const TermsOfServiceScreen()),
+          GoRoute(path: 'security', builder: (context, state) => const SecuritySettingsScreen()),
         ],
       ),
     ],

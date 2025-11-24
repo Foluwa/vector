@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/buttons.dart';
 
 /// Pro pricing screen
@@ -23,7 +24,7 @@ class _ProPricingScreenState extends State<ProPricingScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Vector Pro')),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -31,35 +32,35 @@ class _ProPricingScreenState extends State<ProPricingScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text('Vector', style: AppTextStyles.h1.copyWith(color: AppColors.primary)),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppConstants.spacing8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacing8, vertical: 4),
                   decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
                   child: Text('PRO', style: AppTextStyles.captionMedium),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             Text(
               'Advanced features for active users',
               style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             Row(
               children: [
                 Expanded(child: _pricingCard(false)),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppConstants.spacing16),
                 Expanded(child: _pricingCard(true)),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             // Savings/billing info
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              padding: const EdgeInsets.symmetric(vertical: AppConstants.spacing12, horizontal: AppConstants.spacing16),
               decoration: BoxDecoration(
                 color: _isAnnual ? AppColors.primary.withOpacity(0.1) : AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: AppConstants.borderRadiusMedium,
                 border: Border.all(color: _isAnnual ? AppColors.primary.withOpacity(0.3) : AppColors.border),
               ),
               child: Row(
@@ -67,15 +68,15 @@ class _ProPricingScreenState extends State<ProPricingScreen> {
                 children: [
                   Icon(
                     _isAnnual ? Icons.savings_outlined : Icons.calendar_today_outlined,
-                    size: 20,
+                    size: AppConstants.iconMedium,
                     color: _isAnnual ? AppColors.primary : AppColors.textSecondary,
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppConstants.spacing8),
                   Text(_savingsText, style: AppTextStyles.body2Medium.copyWith(color: _isAnnual ? AppColors.primary : AppColors.textSecondary)),
                 ],
               ),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             ..._features.map((feature) => _featureItem(feature)),
             const SizedBox(height: 32),
             PrimaryButton(label: _buttonLabel, onPressed: () {}),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../constants/app_constants.dart';
 
 /// Action card for primary actions (e.g., "Receive Payment", "Scan to Pay")
 class ActionCard extends StatelessWidget {
@@ -16,23 +17,26 @@ class ActionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppConstants.borderRadiusLarge,
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: AppConstants.paddingAll20,
         decoration: BoxDecoration(
           color: isPrimary ? AppColors.primary : AppColors.background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: isPrimary ? AppColors.primary : AppColors.border, width: 1),
+          borderRadius: AppConstants.borderRadiusLarge,
+          border: Border.all(color: isPrimary ? AppColors.primary : AppColors.border, width: AppConstants.borderThin),
         ),
         child: Row(
           children: [
-            if (icon != null) ...[Icon(icon, size: 24, color: isPrimary ? AppColors.textPrimary : AppColors.primary), const SizedBox(width: 16)],
+            if (icon != null) ...[
+              Icon(icon, size: AppConstants.iconLarge, color: isPrimary ? AppColors.textPrimary : AppColors.primary),
+              const SizedBox(width: AppConstants.spacing16),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: AppTextStyles.body1Medium.copyWith(color: AppColors.textPrimary)),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: AppConstants.spacing4),
                   Text(subtitle, style: AppTextStyles.body2.copyWith(color: isPrimary ? AppColors.textPrimary : AppColors.textSecondary)),
                 ],
               ),
@@ -54,11 +58,11 @@ class InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: padding ?? const EdgeInsets.all(20),
+      padding: padding ?? AppConstants.paddingAll20,
       decoration: BoxDecoration(
         color: AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1),
+        borderRadius: AppConstants.borderRadiusLarge,
+        border: Border.all(color: AppColors.border, width: AppConstants.borderThin),
       ),
       child: child,
     );
@@ -92,13 +96,13 @@ class BankAccountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppConstants.borderRadiusLarge,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: AppConstants.paddingAll16,
         decoration: BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.border, width: 1),
+          borderRadius: AppConstants.borderRadiusLarge,
+          border: Border.all(color: AppColors.border, width: AppConstants.borderThin),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,11 +110,11 @@ class BankAccountCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8)),
-                  child: const Icon(Icons.credit_card, size: 20, color: AppColors.textSecondary),
+                  padding: AppConstants.paddingAll12,
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppConstants.borderRadiusSmall),
+                  child: const Icon(Icons.credit_card, size: AppConstants.iconMedium, color: AppColors.textSecondary),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppConstants.spacing12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,23 +127,23 @@ class BankAccountCard extends StatelessWidget {
                 if (onMenuTap != null) IconButton(icon: const Icon(Icons.more_vert), color: AppColors.textSecondary, onPressed: onMenuTap),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppConstants.spacing12),
             Text(maskedNumber, style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary)),
             if (isDefault || isExpired) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppConstants.spacing12),
               if (isDefault)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacing12, vertical: 4),
+                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppConstants.borderRadiusMedium),
                   child: Text('DEFAULT', style: AppTextStyles.captionMedium.copyWith(color: AppColors.textPrimary)),
                 ),
               if (isExpired) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacing12, vertical: 4),
+                  decoration: BoxDecoration(color: AppColors.warning.withOpacity(0.1), borderRadius: AppConstants.borderRadiusMedium),
                   child: Text('Connection expired', style: AppTextStyles.captionMedium.copyWith(color: AppColors.warning)),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppConstants.spacing12),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton(

@@ -1,6 +1,7 @@
 // Placeholder screens for payment flows
 
 import 'package:flutter/material.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/buttons.dart';
 
@@ -16,9 +17,9 @@ class ScanQrScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Icon(Icons.qr_code_scanner, size: 120),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppConstants.spacing24),
             Text('Camera view would appear here', style: AppTextStyles.body1),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             const Text('Point camera at QR code to scan'),
           ],
         ),
@@ -35,19 +36,19 @@ class GenerateQrScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Generate QR Code')),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 250,
               height: 250,
-              decoration: BoxDecoration(border: Border.all(width: 2), borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(border: Border.all(width: 2), borderRadius: AppConstants.borderRadiusLarge),
               child: const Center(child: Icon(Icons.qr_code, size: 200)),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             Text('Share this QR code to receive payment', style: AppTextStyles.body1, textAlign: TextAlign.center),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppConstants.spacing24),
             PrimaryButton(label: 'Share', onPressed: () {}),
           ],
         ),
@@ -64,14 +65,14 @@ class PaymentReviewScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Review Payment')),
       body: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text('Payment Details', style: AppTextStyles.h1),
-            const SizedBox(height: 32),
+            const SizedBox(height: AppConstants.spacing32),
             Text('Amount: \u00A345.00', style: AppTextStyles.h2),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             const Text('To: Sarah Chen'),
             const Spacer(),
             PrimaryButton(label: 'Confirm Payment', onPressed: () {}),

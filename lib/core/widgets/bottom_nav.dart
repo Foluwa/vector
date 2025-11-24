@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_text_styles.dart';
+import '../constants/app_constants.dart';
 
 /// Bottom navigation bar for main screens
 class AppBottomNav extends StatelessWidget {
@@ -18,7 +19,7 @@ class AppBottomNav extends StatelessWidget {
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: AppConstants.paddingV8,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -46,14 +47,14 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: AppConstants.borderRadiusMedium,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: AppConstants.paddingH16V8,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 24, color: isSelected ? AppColors.primary : AppColors.textSecondary),
-            const SizedBox(height: 4),
+            Icon(icon, size: AppConstants.iconLarge, color: isSelected ? AppColors.primary : AppColors.textSecondary),
+            const SizedBox(height: AppConstants.spacing4),
             Text(
               label,
               style: AppTextStyles.caption.copyWith(

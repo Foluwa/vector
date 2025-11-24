@@ -5,8 +5,10 @@ import 'package:go_router/go_router.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/widgets/buttons.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/services/share_service.dart';
 import '../models/payment_session_model.dart';
 import '../services/session_service.dart';
 
@@ -22,6 +24,16 @@ class SessionActiveScreen extends ConsumerStatefulWidget {
 
 class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
   bool _isEndingSession = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Ensure timer is running when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Restart the update timer to ensure countdown works
+      ref.read(activeSessionProvider.notifier).ensureTimerRunning();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,10 +59,10 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
                 children: [
                   // Header with timer and total
                   _buildHeader(session),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppConstants.spacing24),
                   // QR code section
                   _buildQRSection(session),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: AppConstants.spacing32),
                   // Recent payments list
                   _buildRecentPayments(session),
                 ],
@@ -66,15 +78,15 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
 
   Widget _buildHeader(PaymentSession session) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: AppConstants.paddingAll24,
       child: Column(
         children: [
           Text('SESSION ACTIVE', style: AppTextStyles.captionMedium.copyWith(color: AppColors.primary, letterSpacing: 1.2)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppConstants.spacing8),
           Text(session.formattedDuration, style: AppTextStyles.h1.copyWith(fontSize: 48)),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppConstants.spacing16),
           Text(session.formattedTotalAmount, style: AppTextStyles.h1.copyWith(fontSize: 56, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppConstants.spacing8),
           Text(
             '${session.paymentsCount} payment${session.paymentsCount == 1 ? '' : 's'} received',
             style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
@@ -86,24 +98,24 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
 
   Widget _buildQRSection(PaymentSession session) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: AppConstants.paddingH24,
       child: Column(
         children: [
           // QR Code
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: AppConstants.paddingAll24,
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: AppConstants.borderRadiusLarge,
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
             ),
             child: QrImageView(data: session.qrPayload, version: QrVersions.auto, size: 280, backgroundColor: Colors.white),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppConstants.spacing16),
           // URL and action buttons
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(12)),
+            padding: AppConstants.paddingAll16,
+            decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppConstants.borderRadiusMedium),
             child: Column(
               children: [
                 Text(
@@ -111,7 +123,7 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
                   style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppConstants.spacing12),
                 Row(
                   children: [
                     Expanded(
@@ -122,11 +134,11 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacing12),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppConstants.spacing12),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _shareSession(session.publicUrl),
@@ -135,7 +147,7 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.primary,
                           side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacing12),
                         ),
                       ),
                     ),
@@ -152,11 +164,11 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
   Widget _buildRecentPayments(PaymentSession session) {
     if (session.payments.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.all(24),
+        padding: AppConstants.paddingAll24,
         child: Column(
           children: [
             Icon(Icons.payment, size: 64, color: AppColors.textTertiary),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppConstants.spacing16),
             Text('Waiting for first payment...', style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
           ],
         ),
@@ -164,12 +176,12 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+      padding: AppConstants.paddingH24,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Recent Payments', style: AppTextStyles.h3),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppConstants.spacing16),
           ...session.payments.reversed.map((payment) => _buildPaymentItem(payment)),
         ],
       ),
@@ -178,11 +190,11 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
 
   Widget _buildPaymentItem(SessionPayment payment) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: AppConstants.spacing12),
+      padding: AppConstants.paddingAll16,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: AppConstants.borderRadiusMedium,
         border: Border.all(color: AppColors.border),
       ),
       child: Row(
@@ -191,12 +203,12 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
           Container(
             width: 48,
             height: 48,
-            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(24)),
+            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(AppConstants.radiusXLarge)),
             child: Center(
               child: Text(payment.initials, style: AppTextStyles.body1Medium.copyWith(color: AppColors.textPrimary)),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppConstants.spacing12),
           // Name and amount
           Expanded(
             child: Column(
@@ -212,12 +224,12 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(12)),
-                child: const Icon(Icons.check, size: 16, color: AppColors.textPrimary),
+                width: AppConstants.iconLarge,
+                height: AppConstants.iconLarge,
+                decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppConstants.borderRadiusMedium),
+                child: const Icon(Icons.check, size: AppConstants.iconSmall, color: AppColors.textPrimary),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppConstants.spacing4),
               Text(payment.timeAgo, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
             ],
           ),
@@ -292,10 +304,15 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
     NotificationService.showCopied('Session link');
   }
 
-  void _shareSession(String url) {
-    // In a real app, use share_plus package
-    // For now, just show a message
-    NotificationService.showInfo('Share: $url');
+  void _shareSession(String url) async {
+    try {
+      final session = ref.read(activeSessionProvider);
+      if (session != null) {
+        await ShareService.shareSessionUrl(url, session.id);
+      }
+    } catch (e) {
+      NotificationService.showError('Failed to share session');
+    }
   }
 
   void _showAddNoteDialog() {
