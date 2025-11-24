@@ -1,3 +1,5 @@
+import '../../../core/utils/currency_formatter.dart';
+
 enum TransactionType { sent, received }
 
 enum TransactionStatus { pending, completed, failed, cancelled, expired }
@@ -34,8 +36,8 @@ class TransactionModel {
   }
 
   String get formattedAmount {
-    final sign = type == TransactionType.received ? '+' : '-';
-    return '$sign£${amount.toStringAsFixed(2)}';
+    final isPositive = type == TransactionType.received;
+    return CurrencyFormatter.formatWithSign(amount, isPositive: isPositive);
   }
 
   String get statusText {

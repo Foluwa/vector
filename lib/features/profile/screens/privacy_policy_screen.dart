@@ -46,7 +46,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
 
           _buildSection(
             title: '5. Your Rights',
-            content: 'You have the right to access, correct, or delete your personal data. Contact us at privacy@vector.app.',
+            content: 'You have the right to access, correct, or delete your personal data. Contact us at privacy@paywithvector.app.',
           ),
 
           _buildSection(
@@ -54,7 +54,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
             content: 'We use essential cookies for app functionality. No third-party advertising cookies are used.',
           ),
 
-          _buildSection(title: '7. Contact Us', content: 'For privacy questions, email privacy@vector.app or contact support in the app.'),
+          _buildSection(title: '7. Contact Us', content: 'For privacy questions, email privacy@paywithvector.app or contact support in the app.'),
         ],
       ),
     );

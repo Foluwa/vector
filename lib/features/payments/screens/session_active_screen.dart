@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../core/widgets/buttons.dart';
 import '../../../core/services/notification_service.dart';
-import '../../../core/services/share_service.dart';
-import '../models/payment_session_model.dart';
 import '../services/session_service.dart';
+import '../widgets/session_header.dart';
+import '../widgets/session_qr_section.dart';
+import '../widgets/session_payments_list.dart';
+import '../widgets/session_bottom_bar.dart';
 
 /// Session Active Screen - Shows QR code, timer, and real-time payment updates
 class SessionActiveScreen extends ConsumerStatefulWidget {
@@ -30,9 +28,35 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
     super.initState();
     // Ensure timer is running when screen loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // Restart the update timer to ensure countdown works
-      ref.read(activeSessionProvider.notifier).ensureTimerRunning();
+      if (mounted) {
+        final session = ref.read(activeSessionProvider);
+
+        // If session is null, try to restore from storage (handles hot reload)
+        if (session == null) {
+          ref.read(activeSessionProvider.notifier).restoreSession().then((_) {
+            // After restoration, ensure timer is running
+            if (mounted) {
+              ref.read(activeSessionProvider.notifier).ensureTimerRunning();
+            }
+          });
+        } else {
+          // Session exists, just ensure timer is running
+          ref.read(activeSessionProvider.notifier).ensureTimerRunning();
+        }
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    // Pause updates but keep session active when leaving screen
+    // Call pauseUpdates before dispose to avoid "ref after dispose" error
+    try {
+      ref.read(activeSessionProvider.notifier).pauseUpdates();
+    } catch (e) {
+      // Ignore errors if already disposed
+    }
+    super.dispose();
   }
 
   @override
@@ -41,378 +65,131 @@ class _SessionActiveScreenState extends ConsumerState<SessionActiveScreen> {
 
     if (session == null) {
       return Scaffold(
-        appBar: AppBar(),
+        appBar: AppBar(
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        ),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // Main scrollable content
-            SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 140), // Space for sticky bar
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Header with timer and total
-                  _buildHeader(session),
-                  const SizedBox(height: AppConstants.spacing24),
-                  // QR code section
-                  _buildQRSection(session),
-                  const SizedBox(height: AppConstants.spacing32),
-                  // Recent payments list
-                  _buildRecentPayments(session),
-                ],
-              ),
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop && mounted) {
+          // Session stays active, just pause updates
+          try {
+            ref.read(activeSessionProvider.notifier).pauseUpdates();
+          } catch (e) {
+            // Ignore if already disposed
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Pause updates before navigating away
+              if (mounted) {
+                ref.read(activeSessionProvider.notifier).pauseUpdates();
+              }
+              context.pop();
+            },
+          ),
+          title: Text(
+            'Active Session',
+            style: TextStyle(color: AppColors.textPrimary, fontSize: 18, fontWeight: FontWeight.w600),
+          ),
+          actions: [
+            // Optional: Add more actions like share, info, etc.
+            IconButton(
+              icon: const Icon(Icons.info_outline),
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Payment Session'),
+                    content: const Text('This session will continue collecting payments until you end it. You can navigate away and return anytime.'),
+                    actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Got it'))],
+                  ),
+                );
+              },
             ),
-            // Sticky bottom bar
-            Positioned(left: 0, right: 0, bottom: 0, child: _buildBottomBar(session)),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(PaymentSession session) {
-    return Container(
-      padding: AppConstants.paddingAll24,
-      child: Column(
-        children: [
-          Text('SESSION ACTIVE', style: AppTextStyles.captionMedium.copyWith(color: AppColors.primary, letterSpacing: 1.2)),
-          const SizedBox(height: AppConstants.spacing8),
-          Text(session.formattedDuration, style: AppTextStyles.h1.copyWith(fontSize: 48)),
-          const SizedBox(height: AppConstants.spacing16),
-          Text(session.formattedTotalAmount, style: AppTextStyles.h1.copyWith(fontSize: 56, fontWeight: FontWeight.bold)),
-          const SizedBox(height: AppConstants.spacing8),
-          Text(
-            '${session.paymentsCount} payment${session.paymentsCount == 1 ? '' : 's'} received',
-            style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQRSection(PaymentSession session) {
-    return Padding(
-      padding: AppConstants.paddingH24,
-      child: Column(
-        children: [
-          // QR Code
-          Container(
-            padding: AppConstants.paddingAll24,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: AppConstants.borderRadiusLarge,
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 2))],
-            ),
-            child: QrImageView(data: session.qrPayload, version: QrVersions.auto, size: 280, backgroundColor: Colors.white),
-          ),
-          const SizedBox(height: AppConstants.spacing16),
-          // URL and action buttons
-          Container(
-            padding: AppConstants.paddingAll16,
-            decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppConstants.borderRadiusMedium),
-            child: Column(
-              children: [
-                Text(
-                  session.publicUrl,
-                  style: AppTextStyles.body2.copyWith(color: AppColors.textSecondary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppConstants.spacing12),
-                Row(
+        body: SafeArea(
+          top: false,
+          child: Stack(
+            children: [
+              // Main scrollable content
+              SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 140), // Space for sticky bar
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _copyToClipboard(session.publicUrl),
-                        icon: const Icon(Icons.content_copy, size: 18),
-                        label: const Text('Copy'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacing12),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.spacing12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => _shareSession(session.publicUrl),
-                        icon: const Icon(Icons.share, size: 18),
-                        label: const Text('Share'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primary,
-                          side: BorderSide(color: AppColors.primary.withOpacity(0.3)),
-                          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacing12),
-                        ),
-                      ),
-                    ),
+                    // Header with timer and total
+                    SessionHeader(session: session),
+                    const SizedBox(height: AppConstants.spacing24),
+                    // QR code section
+                    SessionQRSection(session: session),
+                    const SizedBox(height: AppConstants.spacing32),
+                    // Recent payments list
+                    SessionPaymentsList(session: session),
                   ],
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRecentPayments(PaymentSession session) {
-    if (session.payments.isEmpty) {
-      return Padding(
-        padding: AppConstants.paddingAll24,
-        child: Column(
-          children: [
-            Icon(Icons.payment, size: 64, color: AppColors.textTertiary),
-            const SizedBox(height: AppConstants.spacing16),
-            Text('Waiting for first payment...', style: AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
-          ],
-        ),
-      );
-    }
-
-    return Padding(
-      padding: AppConstants.paddingH24,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Recent Payments', style: AppTextStyles.h3),
-          const SizedBox(height: AppConstants.spacing16),
-          ...session.payments.reversed.map((payment) => _buildPaymentItem(payment)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentItem(SessionPayment payment) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppConstants.spacing12),
-      padding: AppConstants.paddingAll16,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: AppConstants.borderRadiusMedium,
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          // Avatar
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(AppConstants.radiusXLarge)),
-            child: Center(
-              child: Text(payment.initials, style: AppTextStyles.body1Medium.copyWith(color: AppColors.textPrimary)),
-            ),
-          ),
-          const SizedBox(width: AppConstants.spacing12),
-          // Name and amount
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(payment.payerName, style: AppTextStyles.body1Medium),
-                Text(payment.formattedAmount, style: AppTextStyles.h3.copyWith(fontWeight: FontWeight.bold)),
-              ],
-            ),
-          ),
-          // Status and time
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Container(
-                width: AppConstants.iconLarge,
-                height: AppConstants.iconLarge,
-                decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppConstants.borderRadiusMedium),
-                child: const Icon(Icons.check, size: AppConstants.iconSmall, color: AppColors.textPrimary),
               ),
-              const SizedBox(height: AppConstants.spacing4),
-              Text(payment.timeAgo, style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary)),
+              // Sticky bottom bar
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: SessionBottomBar(session: session, isEnding: _isEndingSession, onEndSession: _handleEndSession),
+              ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(PaymentSession session) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, -2))],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Action buttons
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: _showAddNoteDialog,
-                      icon: const Icon(Icons.edit_outlined, size: 20),
-                      label: const Text('Add Note'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 12)),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextButton.icon(
-                      onPressed: () => _showSessionSummary(session),
-                      icon: const Icon(Icons.bar_chart, size: 20),
-                      label: const Text('View Summary'),
-                      style: TextButton.styleFrom(foregroundColor: AppColors.primary, padding: const EdgeInsets.symmetric(vertical: 12)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // End session button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _isEndingSession ? null : _showEndSessionDialog,
-                  icon: _isEndingSession
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.cancel_outlined, size: 20),
-                  label: Text(_isEndingSession ? 'Ending session...' : 'End Session'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.error,
-                    side: const BorderSide(color: AppColors.error, width: 2),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                  ),
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
   }
 
-  void _copyToClipboard(String text) {
-    Clipboard.setData(ClipboardData(text: text));
-    NotificationService.showCopied('Session link');
-  }
-
-  void _shareSession(String url) async {
-    try {
-      final session = ref.read(activeSessionProvider);
-      if (session != null) {
-        await ShareService.shareSessionUrl(url, session.id);
-      }
-    } catch (e) {
-      NotificationService.showError('Failed to share session');
-    }
-  }
-
-  void _showAddNoteDialog() {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add Session Note'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Session note (optional)', border: OutlineInputBorder()),
-          maxLines: 3,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                ref.read(activeSessionProvider.notifier).addNote(controller.text);
-              }
-              Navigator.of(context).pop();
-              NotificationService.showActionSuccess('Note added');
-            },
-            child: const Text('Save'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showSessionSummary(PaymentSession session) {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Session Summary', style: AppTextStyles.h2),
-            const SizedBox(height: 16),
-            _summaryRow('Total Payments', '${session.paymentsCount}'),
-            _summaryRow('Gross Amount', session.formattedTotalAmount),
-            _summaryRow('Estimated Fees', session.formattedTotalFees),
-            const Divider(height: 24),
-            _summaryRow('Net Amount', session.formattedNetAmount, isHighlighted: true),
-            const SizedBox(height: 16),
-            PrimaryButton(label: 'Close', onPressed: () => Navigator.of(context).pop()),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _summaryRow(String label, String value, {bool isHighlighted = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: isHighlighted ? AppTextStyles.body1Medium : AppTextStyles.body1.copyWith(color: AppColors.textSecondary)),
-          Text(value, style: isHighlighted ? AppTextStyles.h3.copyWith(color: AppColors.primary) : AppTextStyles.body1Medium),
-        ],
-      ),
-    );
-  }
-
-  void _showEndSessionDialog() {
-    showDialog(
+  Future<void> _handleEndSession() async {
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('End Session?'),
-        content: const Text('No more payments will be accepted via this QR link.'),
+        content: const Text('Are you sure you want to end this payment session? You can still review the details afterward.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              _endSession();
-            },
+            onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(foregroundColor: AppColors.error),
             child: const Text('End Session'),
           ),
         ],
       ),
     );
-  }
 
-  Future<void> _endSession() async {
+    if (confirmed != true || !mounted) return;
+
     setState(() => _isEndingSession = true);
 
     try {
-      await ref.read(activeSessionProvider.notifier).endSession();
+      final session = ref.read(activeSessionProvider);
+      if (session != null) {
+        await ref.read(activeSessionProvider.notifier).endSession();
 
-      if (mounted) {
-        context.go('/session-settlement/${widget.sessionId}');
+        if (mounted) {
+          NotificationService.showSuccess('Session ended successfully');
+          context.go('/session-settlement/${session.id}');
+        }
       }
     } catch (e) {
       if (mounted) {
-        NotificationService.showError('Could not end session. Please try again.');
+        NotificationService.showError('Failed to end session');
         setState(() => _isEndingSession = false);
       }
     }

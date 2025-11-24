@@ -22,9 +22,45 @@ class ShareService {
     }
   }
 
-  /// Share session URL
-  static Future<void> shareSessionUrl(String url, String sessionId) async {
+  /// Share session URL with optional QR code image
+  static Future<void> shareSessionUrl(String url, String sessionId, {GlobalKey? qrKey}) async {
     final text = 'Pay me via Vector:\n$url\n\nSession ID: $sessionId';
+
+    // If QR key is provided, share with image
+    if (qrKey != null) {
+      try {
+        // Capture QR code as image
+        RenderRepaintBoundary? boundary = qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+
+        if (boundary != null) {
+          ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+          ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+          if (byteData != null) {
+            Uint8List pngBytes = byteData.buffer.asUint8List();
+
+            // Save to file
+            final directory = await getApplicationDocumentsDirectory();
+            final path = '${directory.path}/vector_qr_$sessionId.png';
+            final file = File(path);
+            await file.writeAsBytes(pngBytes);
+
+            // Share with image
+            await Share.shareXFiles(
+              [XFile(path, mimeType: 'image/png')],
+              text: text,
+              subject: 'Vector Payment Session',
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error capturing QR code: $e');
+        // Fall back to text-only share
+      }
+    }
+
+    // Default: text-only share
     await shareText(text, subject: 'Vector Payment Session');
   }
 
@@ -79,10 +115,27 @@ class ShareService {
     }
   }
 
-  /// Export payment session to PDF
-  static Future<void> exportSessionToPDF(PaymentSession session) async {
+  /// Export payment session to PDF with embedded QR code
+  static Future<void> exportSessionToPDF(PaymentSession session, {GlobalKey? qrKey}) async {
     try {
       final pdf = pw.Document();
+
+      // Capture QR code image if available
+      pw.MemoryImage? qrImage;
+      if (qrKey != null) {
+        try {
+          RenderRepaintBoundary? boundary = qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+          if (boundary != null) {
+            ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+            ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+            if (byteData != null) {
+              qrImage = pw.MemoryImage(byteData.buffer.asUint8List());
+            }
+          }
+        } catch (e) {
+          debugPrint('Error capturing QR for PDF: $e');
+        }
+      }
 
       pdf.addPage(
         pw.MultiPage(
@@ -124,6 +177,30 @@ class ShareService {
               ),
             ),
             pw.SizedBox(height: 24),
+
+            // QR Code (if available)
+            if (qrImage != null)
+              pw.Container(
+                padding: const pw.EdgeInsets.all(16),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey300),
+                  borderRadius: const pw.BorderRadius.all(pw.Radius.circular(8)),
+                ),
+                child: pw.Column(
+                  children: [
+                    pw.Text('Payment QR Code', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+                    pw.SizedBox(height: 12),
+                    pw.Center(child: pw.Container(width: 150, height: 150, child: pw.Image(qrImage))),
+                    pw.SizedBox(height: 8),
+                    pw.Text(
+                      session.publicUrl,
+                      style: const pw.TextStyle(fontSize: 9, color: PdfColors.grey700),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            if (qrImage != null) pw.SizedBox(height: 24),
 
             // Payments Table
             pw.Text('Payments Received', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
@@ -246,8 +323,8 @@ class ShareService {
     }
   }
 
-  /// Share session summary as text
-  static Future<void> shareSessionSummary(PaymentSession session) async {
+  /// Share session summary with optional QR code image
+  static Future<void> shareSessionSummary(PaymentSession session, {GlobalKey? qrKey}) async {
     final summary =
         '''
 Vector Payment Session Summary
@@ -265,9 +342,45 @@ ${session.note != null ? 'Note: ${session.note}\n' : ''}
 Payment Details:
 ${session.payments.map((p) => '• ${p.timeOnly} - ${p.payerName}: ${p.formattedAmount}').join('\n')}
 
+Pay via: ${session.publicUrl}
+
 Powered by Vector
 ''';
 
+    // If QR key is provided, share with QR image
+    if (qrKey != null) {
+      try {
+        RenderRepaintBoundary? boundary = qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+
+        if (boundary != null) {
+          ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+          ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+          if (byteData != null) {
+            Uint8List pngBytes = byteData.buffer.asUint8List();
+
+            // Save to file
+            final directory = await getApplicationDocumentsDirectory();
+            final path = '${directory.path}/vector_summary_${session.id}.png';
+            final file = File(path);
+            await file.writeAsBytes(pngBytes);
+
+            // Share with QR image
+            await Share.shareXFiles(
+              [XFile(path, mimeType: 'image/png')],
+              text: summary,
+              subject: 'Vector Session ${session.id} Summary',
+            );
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('Error capturing QR for summary: $e');
+        // Fall back to text-only
+      }
+    }
+
+    // Default: text-only share
     await shareText(summary, subject: 'Vector Session ${session.id} Summary');
   }
 }

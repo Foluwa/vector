@@ -1,3 +1,5 @@
+import '../../../core/utils/currency_formatter.dart';
+
 enum SessionStatus { active, ended }
 
 /// Individual payment within a session
@@ -18,7 +20,7 @@ class SessionPayment {
     return payerName.substring(0, 2).toUpperCase();
   }
 
-  String get formattedAmount => '£${amount.toStringAsFixed(2)}';
+  String get formattedAmount => CurrencyFormatter.format(amount);
 
   String get timeOnly {
     final hour = timestamp.hour.toString().padLeft(2, '0');
@@ -86,11 +88,11 @@ class PaymentSession {
     return '$minutes:$seconds';
   }
 
-  String get formattedTotalAmount => '£${totalAmount.toStringAsFixed(2)}';
+  String get formattedTotalAmount => CurrencyFormatter.format(totalAmount);
 
-  String get formattedTotalFees => '£${totalFees.toStringAsFixed(2)}';
+  String get formattedTotalFees => CurrencyFormatter.format(totalFees);
 
-  String get formattedNetAmount => '£${netAmount.toStringAsFixed(2)}';
+  String get formattedNetAmount => CurrencyFormatter.format(netAmount);
 
   // Methods
   void addPayment(SessionPayment payment) {

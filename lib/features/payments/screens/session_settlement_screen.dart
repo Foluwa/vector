@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
@@ -11,18 +12,25 @@ import '../models/payment_session_model.dart';
 import '../services/session_service.dart';
 
 /// Session Settlement Screen - Shows final payment breakdown and settlement details
-class SessionSettlementScreen extends ConsumerWidget {
+class SessionSettlementScreen extends ConsumerStatefulWidget {
   const SessionSettlementScreen({super.key, required this.sessionId});
 
   final String sessionId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SessionSettlementScreen> createState() => _SessionSettlementScreenState();
+}
+
+class _SessionSettlementScreenState extends ConsumerState<SessionSettlementScreen> {
+  final GlobalKey _qrKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
     final session = ref.watch(activeSessionProvider);
     final sessionService = ref.watch(sessionServiceProvider);
 
     // If session not in active provider, fetch it
-    final displaySession = session?.id == sessionId ? session : sessionService.getSession(sessionId);
+    final displaySession = session?.id == widget.sessionId ? session : sessionService.getSession(widget.sessionId);
 
     if (displaySession == null) {
       return Scaffold(
@@ -42,6 +50,9 @@ class SessionSettlementScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // QR code section (for sharing with image)
+            _buildQRSection(displaySession),
+            const SizedBox(height: AppConstants.spacing24),
             // Payments list
             _buildPaymentsList(displaySession),
             const SizedBox(height: AppConstants.spacing32),
@@ -61,6 +72,39 @@ class SessionSettlementScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildQRSection(PaymentSession session) {
+    return Container(
+      padding: AppConstants.paddingAll24,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: AppConstants.borderRadiusLarge,
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Text('Payment QR Code', style: AppTextStyles.h3),
+          const SizedBox(height: AppConstants.spacing16),
+          RepaintBoundary(
+            key: _qrKey,
+            child: Container(
+              padding: AppConstants.paddingAll16,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: AppConstants.borderRadiusMedium),
+              child: QrImageView(data: session.publicUrl, version: QrVersions.auto, size: 180),
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacing8),
+          Text(
+            session.publicUrl,
+            style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -241,7 +285,7 @@ class SessionSettlementScreen extends ConsumerWidget {
               onTap: () async {
                 Navigator.pop(context);
                 try {
-                  await ShareService.shareSessionSummary(session);
+                  await ShareService.shareSessionSummary(session, qrKey: _qrKey);
                 } catch (e) {
                   NotificationService.showError('Failed to share summary');
                 }
@@ -256,7 +300,7 @@ class SessionSettlementScreen extends ConsumerWidget {
                 Navigator.pop(context);
                 try {
                   NotificationService.showLoading('Generating PDF...');
-                  await ShareService.exportSessionToPDF(session);
+                  await ShareService.exportSessionToPDF(session, qrKey: _qrKey);
                   NotificationService.hideAll();
                   NotificationService.showSuccess('PDF exported successfully');
                 } catch (e) {

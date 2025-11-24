@@ -61,7 +61,7 @@ class TermsOfServiceScreen extends StatelessWidget {
 
           _buildSection(title: '9. Termination', content: 'We may suspend or terminate your account for violation of these terms or illegal activity.'),
 
-          _buildSection(title: '10. Contact', content: 'For questions about these terms, contact legal@vector.app.'),
+          _buildSection(title: '10. Contact', content: 'For questions about these terms, contact legal@paywithvector.app.'),
         ],
       ),
     );

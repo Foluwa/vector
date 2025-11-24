@@ -2,9 +2,13 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/payment_session_model.dart';
+import '../../../core/services/session_storage_service.dart';
 
 /// Mock session service for creating and managing payment sessions
 class SessionService {
+  SessionService(this._storageService);
+
+  final SessionStorageService _storageService;
   final Map<String, PaymentSession> _sessions = {};
   final Map<String, Timer?> _sessionTimers = {};
   final Random _random = Random();
@@ -37,10 +41,27 @@ class SessionService {
 
     _sessions[sessionId] = session;
 
+    // Persist session to storage
+    await _storageService.saveActiveSession(session);
+
     // Start mock payment timer (simulates real-time payments)
     _startMockPaymentTimer(sessionId);
 
     return session;
+  }
+
+  /// Restore a session from storage (on app restart)
+  Future<PaymentSession?> restoreSession() async {
+    final session = await _storageService.loadActiveSession();
+
+    if (session != null && session.status == SessionStatus.active) {
+      _sessions[session.id] = session;
+      // Restart mock payment timer
+      _startMockPaymentTimer(session.id);
+      return session;
+    }
+
+    return null;
   }
 
   /// Get a session by ID
@@ -59,6 +80,8 @@ class SessionService {
     final session = _sessions[sessionId];
     if (session != null) {
       session.addNote(note);
+      // Persist updated session
+      await _storageService.saveActiveSession(session);
     }
   }
 
@@ -77,6 +100,9 @@ class SessionService {
 
     // Mark session as ended
     session.endSession();
+
+    // Clear from persistent storage
+    await _storageService.clearActiveSession();
 
     return session;
   }
@@ -97,7 +123,7 @@ class SessionService {
   /// Start mock payment timer for demo purposes
   void _startMockPaymentTimer(String sessionId) {
     // Add random payments every 8-15 seconds to simulate real activity
-    _sessionTimers[sessionId] = Timer.periodic(const Duration(seconds: 10), (timer) {
+    _sessionTimers[sessionId] = Timer.periodic(const Duration(seconds: 10), (timer) async {
       final session = _sessions[sessionId];
       if (session == null || session.status == SessionStatus.ended) {
         timer.cancel();
@@ -115,6 +141,9 @@ class SessionService {
         );
 
         session.addPayment(payment);
+
+        // Persist updated session with new payment
+        await _storageService.saveActiveSession(session);
       }
     });
   }
@@ -136,7 +165,7 @@ class SessionService {
 
 /// Riverpod provider for SessionService
 final sessionServiceProvider = Provider<SessionService>((ref) {
-  final service = SessionService();
+  final service = SessionService(SessionStorageService());
   ref.onDispose(() {
     service.dispose();
   });
@@ -159,6 +188,21 @@ class ActiveSessionNotifier extends StateNotifier<PaymentSession?> {
     _startUpdateTimer();
   }
 
+  /// Restore session from storage (on app restart)
+  Future<void> restoreSession() async {
+    // Don't restore if we already have an active session
+    if (state != null && state!.status == SessionStatus.active) {
+      _startUpdateTimer();
+      return;
+    }
+
+    final session = await _sessionService.restoreSession();
+    if (session != null) {
+      state = session;
+      _startUpdateTimer();
+    }
+  }
+
   /// Add note to current session
   Future<void> addNote(String note) async {
     if (state == null) return;
@@ -175,10 +219,23 @@ class ActiveSessionNotifier extends StateNotifier<PaymentSession?> {
     state = endedSession;
   }
 
-  /// Clear current session (after navigating away)
+  /// Clear current session (after ending it)
   void clearSession() {
     _stopUpdateTimer();
     state = null;
+  }
+
+  /// Pause updates when navigating away (keeps session active)
+  void pauseUpdates() {
+    _stopUpdateTimer();
+    // Don't clear state - session remains active
+  }
+
+  /// Resume updates when returning to session
+  void resumeUpdates() {
+    if (state != null && state!.status == SessionStatus.active) {
+      _startUpdateTimer();
+    }
   }
 
   /// Ensure timer is running (useful when navigating back to session screen)
@@ -216,8 +273,13 @@ class ActiveSessionNotifier extends StateNotifier<PaymentSession?> {
   }
 }
 
-/// Provider for active session state
+/// Provider for active session state with auto-restore on hot reload
 final activeSessionProvider = StateNotifierProvider<ActiveSessionNotifier, PaymentSession?>((ref) {
   final sessionService = ref.watch(sessionServiceProvider);
-  return ActiveSessionNotifier(sessionService);
+  final notifier = ActiveSessionNotifier(sessionService);
+
+  // Automatically restore session on provider creation (handles hot reload)
+  Future.microtask(() => notifier.restoreSession());
+
+  return notifier;
 });
